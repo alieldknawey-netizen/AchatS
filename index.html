@@ -101,7 +101,7 @@
             margin-bottom: 10px;
             display: none;
         }
-        /* الهيدر (شبه انستا/واتس) */
+        /* الهيدر */
         .chat-header {
             padding: 12px 15px;
             background: #1a1a1a;
@@ -154,7 +154,7 @@
             background: #000;
         }
         .message {
-            max-width: 75%;
+            max-width: 80%;
             padding: 10px 14px;
             border-radius: 18px;
             font-size: 14px;
@@ -175,14 +175,18 @@
             border-bottom-left-radius: 4px;
         }
         .message img {
-            max-width: 100%;
-            border-radius: 12px;
+            max-width: 220px;
+            max-height: 250px;
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            display: block;
             margin-top: 5px;
-            cursor: pointer;
+            object-fit: cover;
         }
         .message audio {
-            max-width: 200px;
-            height: 35px;
+            width: 210px;
+            height: 38px;
             margin-top: 5px;
         }
         .msg-time {
@@ -191,7 +195,7 @@
             margin-top: 4px;
             text-align: left;
         }
-        /* شريط الكتابة وإرسال الوسائط */
+        /* شريط الكتابة */
         .chat-input-area {
             padding: 10px 15px;
             background: #1a1a1a;
@@ -286,21 +290,17 @@
             <!-- الرسائل بتظهر هنا -->
         </div>
 
-        <!-- شريط الإدخال (ميكس انستا وواتس) -->
+        <!-- شريط الإدخال -->
         <div class="chat-input-area">
-            <!-- زر رفع الصور -->
             <label class="action-btn">
                 <i class="fa-regular fa-image"></i>
                 <input type="file" id="image-input" accept="image/*" style="display: none;" onchange="sendImage(event)">
             </label>
             
-            <!-- زر الريكورد الصوتي -->
             <button class="action-btn" id="record-btn" onclick="toggleRecord()"><i class="fa-solid fa-microphone"></i></button>
 
-            <!-- حقل النص -->
             <input type="text" id="message-input" placeholder="اكتب رسالة..." onkeypress="handleKeyPress(event)">
 
-            <!-- زر الإرسال -->
             <button class="send-btn" onclick="sendMessage()"><i class="fa-solid fa-paper-plane"></i></button>
         </div>
     </div>
@@ -308,6 +308,7 @@
     <script>
         const SECRET_PASSCODE = "AS16";
         let currentUser = "";
+        let lastMsgCount = 0; // لضبط السكرول وعدم إزعاجه
 
         function handlePasskey(e) {
             if(e.key === 'Enter') verifyPasscode();
@@ -339,8 +340,8 @@
             }
             currentUser = nameInput;
             document.getElementById("login-screen").style.display = "none";
-            loadMessages();
-            setInterval(loadMessages, 1500);
+            loadMessages(true); // سكرول لأحدث رسالة عند الدخول لأول مرة
+            setInterval(() => loadMessages(false), 2000);
         }
 
         function handleKeyPress(e) {
@@ -361,14 +362,18 @@
             let msgs = getStoredMessages();
             msgs.push(msgObj);
             localStorage.setItem("private_chat_msgs", JSON.stringify(msgs));
-            loadMessages();
+            loadMessages(true); // سكرول تلقائي عند إرسال رسالة جديدة منك
         }
 
-        function loadMessages() {
+        function loadMessages(forceScroll = false) {
             const container = document.getElementById("message-container");
             const msgs = getStoredMessages();
             
-            const isScrolledToBottom = container.scrollHeight - container.clientHeight <= container.scrollTop + 50;
+            // تحديث الرسائل فقط لو فيه رسالة جديدة تلافياً لتعليق الريكوردات
+            if (msgs.length === lastMsgCount && !forceScroll) return;
+            lastMsgCount = msgs.length;
+
+            const isScrolledToBottom = container.scrollHeight - container.clientHeight <= container.scrollTop + 80;
 
             container.innerHTML = "";
             msgs.forEach(m => {
@@ -379,7 +384,7 @@
                 if(m.type === 'image') {
                     contentHTML = `<img src="${m.content}" alt="image">`;
                 } else if(m.type === 'audio') {
-                    contentHTML = `<audio controls src="${m.content}"></audio>`;
+                    contentHTML = `<audio controls preload="metadata" src="${m.content}"></audio>`;
                 }
 
                 div.innerHTML = `
@@ -390,7 +395,7 @@
                 container.appendChild(div);
             });
 
-            if(isScrolledToBottom || msgs.length <= 5) {
+            if (forceScroll || isScrolledToBottom) {
                 container.scrollTop = container.scrollHeight;
             }
         }
